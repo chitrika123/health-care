@@ -6,6 +6,7 @@ pipeline {
         DOCKER_IMAGE = "chitrika/medicure:${BUILD_NUMBER}"
         DOCKER_CREDS = "dockerhub-creds"
         K8S_MASTER = "172.31.43.245"
+        SMOKE_TEST_HOST = "172.31.42.92"
     }
 
     stages {
@@ -61,19 +62,19 @@ pipeline {
                 sh '''
                     echo "Running Medicure smoke test..."
 
-                    curl -f -X POST http://${K8S_MASTER}:30082/registerDoctor \
+                    curl --max-time 15 -f -X POST http://${SMOKE_TEST_HOST}:30082/registerDoctor \
                     -H "Content-Type: application/json" \
                     -d '{"doctorRegistrationId":"SMOKE001","doctorName":"Smoke Test","doctorSpeciality":"Testing","doctorExperience":"1 Year"}'
 
-                    curl -f http://${K8S_MASTER}:30082/searchDoctor/Smoke%20Test
+                    curl --max-time 15 -f http://${SMOKE_TEST_HOST}:30082/searchDoctor/Smoke%20Test
 
-                    curl -f -X PUT http://${K8S_MASTER}:30082/updateDoctor/SMOKE001 \
+                    curl --max-time 15 -f -X PUT http://${SMOKE_TEST_HOST}:30082/updateDoctor/SMOKE001 \
                     -H "Content-Type: application/json" \
                     -d '{"doctorName":"Smoke Test","doctorSpeciality":"Updated Testing","doctorExperience":"2 Years"}'
 
-                    curl -f http://${K8S_MASTER}:30082/searchDoctor/Smoke%20Test
+                    curl --max-time 15 -f http://${SMOKE_TEST_HOST}:30082/searchDoctor/Smoke%20Test
 
-                    curl -f -X DELETE http://${K8S_MASTER}:30082/deletePolicy/SMOKE001
+                    curl --max-time 15 -f -X DELETE http://${SMOKE_TEST_HOST}:30082/deletePolicy/SMOKE001
 
                     echo "Smoke test PASSED"
                 '''
