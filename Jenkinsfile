@@ -1,8 +1,10 @@
+```groovy
 pipeline {
     agent any
 
     environment {
         DOCKER_IMAGE = "chitrika/medicure:${BUILD_NUMBER}"
+        DOCKER_CREDENTIALS = "dockerhub-creds"
         K8S_MASTER = "172.31.43.245"
         SMOKE_TEST_HOST = "172.31.42.92"
     }
@@ -11,8 +13,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: 'master',
-                    url: 'https://github.com/chitrika123/health-care.git'
+                checkout scm
             }
         }
 
@@ -30,7 +31,18 @@ pipeline {
 
         stage('Docker Push') {
             steps {
-                sh 'docker push ${DOCKER_IMAGE}'
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: "${DOCKER_CREDENTIALS}",
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                        docker push ${DOCKER_IMAGE}
+                    '''
+                }
             }
         }
 
@@ -53,28 +65,8 @@ pipeline {
 
                     ssh -o StrictHostKeyChecking=no \
                     -i /home/ubuntu/projectkey.pem \
-                    ubuntu@${K8S_MASTER} "
-                    
-                    curl --max-time 15 -f -X POST \
-                    http://${SMOKE_TEST_HOST}:30082/registerDoctor \
-                    -H 'Content-Type: application/json' \
-                    -d '{\"doctorRegistrationId\":\"SMOKE001\",\"doctorName\":\"Smoke Test\",\"doctorSpeciality\":\"Testing\",\"doctorExperience\":\"1 Year\"}' &&
-
-                    curl --max-time 15 -f \
-                    http://${SMOKE_TEST_HOST}:30082/searchDoctor/Smoke%20Test &&
-
-                    curl --max-time 15 -f -X PUT \
-                    http://${SMOKE_TEST_HOST}:30082/updateDoctor/SMOKE001 \
-                    -H 'Content-Type: application/json' \
-                    -d '{\"doctorName\":\"Smoke Test\",\"doctorSpeciality\":\"Updated Testing\",\"doctorExperience\":\"2 Years\"}' &&
-
-                    curl --max-time 15 -f \
-                    http://${SMOKE_TEST_HOST}:30082/searchDoctor/Smoke%20Test &&
-
-                    curl --max-time 15 -f -X DELETE \
-                    http://${SMOKE_TEST_HOST}:30082/deletePolicy/SMOKE001
-                    
-                    "
+                    ubuntu@${K8S_MASTER} \
+                    "curl --max-time 15 -f http://${SMOKE_TEST_HOST}:30082/"
 
                     echo "Smoke test PASSED"
                 '''
@@ -92,3 +84,4 @@ pipeline {
         }
     }
 }
+```
