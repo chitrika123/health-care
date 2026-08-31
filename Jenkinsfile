@@ -49,7 +49,7 @@ pipeline {
         stage('Deploy to Kubernetes TEST') {
             steps {
                 sh '''
-                    ssh -o StrictHostKeyChecking=no -i /home/ubuntu/projectkey.pem ubuntu@${K8S_MASTER} \
+                    ssh -o StrictHostKeyChecking=no -i /var/lib/jenkins/projectkey.pem ubuntu@${K8S_MASTER} \
                     "kubectl set image deployment/medicure medicure=${DOCKER_IMAGE} && \
                      kubectl rollout status deployment/medicure --timeout=180s"
                 '''
@@ -83,7 +83,7 @@ pipeline {
         stage('Deploy to Kubernetes PROD') {
             steps {
                 sh '''
-                    ssh -o StrictHostKeyChecking=no -i /home/ubuntu/projectkey.pem ubuntu@${K8S_MASTER} \
+                    ssh -o StrictHostKeyChecking=no -i /var/lib/jenkins/projectkey.pem ubuntu@${K8S_MASTER} \
                     "kubectl set image deployment/medicure medicure=${DOCKER_IMAGE} && \
                      kubectl rollout status deployment/medicure --timeout=180s"
                 '''
