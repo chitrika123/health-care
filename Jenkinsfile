@@ -5,7 +5,7 @@ pipeline {
         DOCKER_IMAGE = "chitrika/medicure:${BUILD_NUMBER}"
         DOCKER_CREDENTIALS = "dockerhub-creds"
         K8S_MASTER = "172.31.43.245"
-        SMOKE_TEST_HOST = "172.31.42.92"
+        SMOKE_TEST_HOST = "172.31.38.6"
     }
 
     stages {
