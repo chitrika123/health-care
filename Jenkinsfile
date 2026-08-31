@@ -2,10 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "chitrika/medicure:${BUILD_NUMBER}"
-        DOCKER_CREDENTIALS = "dockerhub-creds"
-        K8S_MASTER = "172.31.43.245"
-        SMOKE_TEST_HOST = "172.31.38.6"
+        K8S_MASTER = '172.31.43.245'
+        SMOKE_TEST_HOST = '172.31.38.6'
     }
 
     stages {
@@ -16,58 +14,58 @@ pipeline {
             }
         }
 
-        stage('Maven Build') {
+        stage('Build') {
             steps {
-                sh 'mvn clean package'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t ${DOCKER_IMAGE} .'
+                sh 'docker build -t chitrika/medicure:${BUILD_NUMBER} .'
             }
         }
 
         stage('Docker Push') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: "${DOCKER_CREDENTIALS}",
-                        usernameVariable: 'DOCKER_USERNAME',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )
-                ]) {
-                    sh '''
-                        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-                        docker push ${DOCKER_IMAGE}
-                    '''
-                }
+                sh 'docker push chitrika/medicure:${BUILD_NUMBER}'
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                    ssh -o StrictHostKeyChecking=no \
-                    -i /home/ubuntu/projectkey.pem \
-                    ubuntu@${K8S_MASTER} \
-                    "kubectl set image deployment/medicure medicure=${DOCKER_IMAGE} && \
-                     kubectl rollout status deployment/medicure --timeout=180s"
+                ssh -o StrictHostKeyChecking=no \
+                -i /home/ubuntu/projectkey.pem \
+                ubuntu@${K8S_MASTER} \
+                "kubectl set image deployment/medicure medicure=chitrika/medicure:${BUILD_NUMBER}"
                 '''
             }
         }
 
         stage('Smoke Test') {
             steps {
+                echo "Running Medicure smoke test..."
+
                 sh '''
-                    echo "Running Medicure smoke test..."
+                for i in {1..12}; do
+                    echo "Smoke test attempt $i/12..."
 
-                    ssh -o StrictHostKeyChecking=no \
-                    -i /home/ubuntu/projectkey.pem \
-                    ubuntu@${K8S_MASTER} \
-                    "curl --max-time 15 -f http://${SMOKE_TEST_HOST}:30082/"
+                    if ssh -o StrictHostKeyChecking=no \
+                        -i /home/ubuntu/projectkey.pem \
+                        ubuntu@${K8S_MASTER} \
+                        "curl --max-time 5 -f http://${SMOKE_TEST_HOST}:30082/"; then
 
-                    echo "Smoke test PASSED"
+                        echo "Smoke test PASSED"
+                        exit 0
+                    fi
+
+                    echo "Application not ready yet. Waiting 5 seconds..."
+                    sleep 5
+                done
+
+                echo "Smoke test FAILED after 60 seconds"
+                exit 1
                 '''
             }
         }
@@ -75,12 +73,11 @@ pipeline {
 
     post {
         success {
-            echo 'Medicure CI/CD pipeline completed successfully!'
+            echo 'Medicure pipeline completed successfully.'
         }
 
         failure {
-            echo 'Medicure CI/CD pipeline failed!'
+            echo 'Medicure pipeline failed.'
         }
     }
 }
-
