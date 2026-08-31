@@ -1,37 +1,37 @@
 package com.project.staragile;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 public class MedicureController {
 
-@Autowired
-MedicureService doctorService;
+    @Autowired
+    private MedicureService doctorService;
 
-@GetMapping("/hello")
-public String sayHello() {
-	return "Hello from Doctor Shubham";
-}
+    @PostMapping("/registerDoctor")
+    public Doctor registerDoctor(@RequestBody Doctor doctor) {
+        return doctorService.registerDoctor(doctor);
+    }
 
-@GetMapping("/createDoctor")
-public Doctor createDoctor() {
-	return doctorService.createDoctor();
-}
-	
-@PostMapping("/registerDoctor")
-public Doctor registerDoctor(@RequestBody Doctor doctor) {
-	return doctorService.registerDoctor(doctor);
-}
+    @PutMapping("/updateDoctor/{doctorRegNo}")
+    public Doctor updateDoctor(
+            @PathVariable String doctorRegNo,
+            @RequestBody Doctor doctor) {
 
-@GetMapping("/getDoctor/{doctorRegistrationId}")
-public Doctor getDoctor(@PathVariable String doctorRegistrationId) {
-	return doctorService.getDoctorDetails(doctorRegistrationId);
-}
-	
-	
+        return doctorService.updateDoctor(doctorRegNo, doctor);
+    }
+
+    @GetMapping("/searchDoctor/{doctorName}")
+    public List<Doctor> searchDoctor(@PathVariable String doctorName) {
+        return doctorService.searchDoctor(doctorName);
+    }
+
+    @DeleteMapping("/deletePolicy/{doctorRegNo}")
+    public String deleteDoctor(@PathVariable String doctorRegNo) {
+        return doctorService.deleteDoctor(doctorRegNo);
+    }
+
 }
